@@ -1,0 +1,27 @@
+{
+  "name": "Escalator",
+  "version": "0.1.0",
+  "authors": [
+    "nowNick <mikolaj.nowak93@gmail.com>"
+  ],
+  "description": "ThreeJs project to display simple escalator.",
+  "main": "src/index.html",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "ThreeJs",
+    "Escalator"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "threejs": "*"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "Escalator",
+  "description": "ThreeJs project to display simple escalator.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/mikolaj/Escalator",
+  "author": {
+    "name": "nowNick",
+    "email": "mikolaj.nowak93@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mikolaj/Escalator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mikolaj/Escalator/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/mikolaj/Escalator/blob/master/LICENSE-MIT"
+    }
+  ],
+  "main": "src/index.html",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "scripts": {
+    "test": "grunt nodeunit"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-jshint": "~0.6.0",
+    "grunt-contrib-nodeunit": "~0.2.0",
+    "grunt-contrib-uglify": "~0.2.0",
+    "grunt-contrib-watch": "~0.4.0",
+    "grunt-wiredep": "^2.0.0"
+  },
+  "keywords": []
+}
