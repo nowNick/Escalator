@@ -3,7 +3,7 @@
  */
 
 var container, stats;
-
+var controls;
 var camera, scene, renderer;
 
 var group;
@@ -16,6 +16,46 @@ var mouseXOnMouseDown = 0;
 
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
+var prismSet;
+var yellowCube;
+var waypoints;
+var waypointId;
+var clock = new THREE.Clock();
+
+
+var PrismCubeFactory = {
+    getPrism : function (a) {
+        var A = new THREE.Vector2( a, a );
+        var B = new THREE.Vector2( a, 0 );
+        var C = new THREE.Vector2( 0, a );
+
+        PrismGeometry = function ( vertices, height ) {
+
+            var Shape = new THREE.Shape();
+
+            ( function f( ctx ) {
+
+                ctx.moveTo( vertices[0].x, vertices[0].y );
+                for (var i=1; i < vertices.length; i++) {
+                    ctx.lineTo( vertices[i].x, vertices[i].y );
+                }
+                ctx.lineTo( vertices[0].x, vertices[0].y );
+
+            } )( Shape );
+
+            var settings = { };
+            settings.amount = height;
+            settings.bevelEnabled = false;
+            THREE.ExtrudeGeometry.call( this, Shape, settings );
+
+        };
+        PrismGeometry.prototype = Object.create( THREE.ExtrudeGeometry.prototype );
+
+        var height = 12;
+
+        return new PrismGeometry( [ A, B, C ], height );
+    }
+};
 
 init();
 animate();
@@ -25,62 +65,65 @@ function init() {
     container = document.createElement( 'div' );
     document.body.appendChild( container );
 
-    var info = document.createElement( 'div' );
-    info.style.position = 'absolute';
-    info.style.top = '10px';
-    info.style.width = '100%';
-    info.style.textAlign = 'center';
-    info.innerHTML = 'Simple procedurally generated 3D shapes<br/>Drag to spin';
-    container.appendChild( info );
+
 
     scene = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 1000 );
-    camera.position.set( 0, 150, 300 );
+    camera.position.set( 0, 50, 50 );
     scene.add( camera );
 
     var light = new THREE.PointLight( 0xffffff, 0.8 );
     camera.add( light );
 
-    group = new THREE.Group();
-    group.position.y = 50;
-    scene.add( group );
 
-    function addShape( shape, extrudeSettings, color, x, y, z, rx, ry, rz, s ) {
-
-        var points = shape.createPointsGeometry();
-
-        // 3d shape
-
-        var geometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
-
-        var mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: color } ) );
-        mesh.position.set( x, y, z  );
-        //mesh.rotation.set( rx, ry, rz, 'X' );
-        mesh.rotation.set( rx, ry, rz );
-        mesh.scale.set( s, s, s );
-        group.add( mesh );
-
-
-
+    var prismSize = 10;
+    prismSet = [];
+    for(var i=0; i<14; i++) {
+        var myPrism = new THREE.Mesh(
+            PrismCubeFactory.getPrism(prismSize),
+            new THREE.MeshLambertMaterial( { color: 0x00FF00 } )
+        );
+        myPrism.position.set(-70+(i*prismSize),41,10);
+        myPrism.waypointId = 0;
+        prismSet.push(myPrism);
+        scene.add( myPrism );
     }
 
-    // Track
 
-    var trackShape = new THREE.Shape();
+    waypoints = [];
+    var leftCorner = -50;
+    var stepStart = leftCorner + (Math.abs(leftCorner*0.5));
+    var rightCorner = -leftCorner;
+    var stepEnd = rightCorner - rightCorner*0.5;
 
-    trackShape.moveTo( 40, 40 );
-    trackShape.lineTo( 40, 160 );
-    trackShape.absarc( 60, 160, 20, Math.PI, 0, true );
-    trackShape.lineTo( 80, 40 );
-    trackShape.absarc( 60, 40, 20, 2 * Math.PI, Math.PI, true );
+    var depth = 10;
+    var lowH = 40;
+    var highH = 80;
+
+    var bottom = 0;
+
+    waypoints.push(new THREE.Vector3(leftCorner, lowH, depth));
+    waypoints.push(new THREE.Vector3(stepStart, lowH, depth));
+    waypoints.push(new THREE.Vector3(stepEnd, highH, depth));
+    waypoints.push(new THREE.Vector3(rightCorner, highH, depth));
+    waypoints.push(new THREE.Vector3(rightCorner, bottom, depth));
+    waypoints.push(new THREE.Vector3(leftCorner, bottom, depth));
 
 
-    var extrudeSettings = { amount: 24, bevelEnabled: true, bevelSegments: 0, steps: 32, bevelSize: 1, bevelThickness: 1 };
 
-    // addShape( shape, color, x, y, z, rx, ry,rz, s );
 
-    addShape( trackShape,       extrudeSettings, 0x008080,  40, 0, 0, 0, 1.57, 1.57, 1 );
+
+    waypoints.forEach( function(waypoint) {
+        var cube = new THREE.Mesh(
+            new THREE.CubeGeometry(5,5,5),
+            new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } )
+        );
+        cube.position.set(waypoint.x, waypoint.y, waypoint.z);
+        scene.add( cube );
+    });
+
+
 
     //
 
@@ -90,17 +133,16 @@ function init() {
     renderer.setSize( window.innerWidth, window.innerHeight );
     container.appendChild( renderer.domElement );
 
+    controls = new THREE.TrackballControls( camera, renderer.domElement );
+    controls.minDistance = 200;
+    controls.maxDistance = 500;
+
     stats = new Stats();
     stats.domElement.style.position = 'absolute';
     stats.domElement.style.top = '0px';
     container.appendChild( stats.domElement );
 
-    document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-    document.addEventListener( 'touchstart', onDocumentTouchStart, false );
-    document.addEventListener( 'touchmove', onDocumentTouchMove, false );
-
     //
-
     window.addEventListener( 'resize', onWindowResize, false );
 
 }
@@ -117,77 +159,28 @@ function onWindowResize() {
 
 }
 
-//
-
-function onDocumentMouseDown( event ) {
-
-    event.preventDefault();
-
-    document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-    document.addEventListener( 'mouseup', onDocumentMouseUp, false );
-    document.addEventListener( 'mouseout', onDocumentMouseOut, false );
-
-    mouseXOnMouseDown = event.clientX - windowHalfX;
-    targetRotationOnMouseDown = targetRotation;
-
-}
-
-function onDocumentMouseMove( event ) {
-
-    mouseX = event.clientX - windowHalfX;
-
-    targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.02;
-
-}
-
-function onDocumentMouseUp( event ) {
-
-    document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
-    document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
-    document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
-
-}
-
-function onDocumentMouseOut( event ) {
-
-    document.removeEventListener( 'mousemove', onDocumentMouseMove, false );
-    document.removeEventListener( 'mouseup', onDocumentMouseUp, false );
-    document.removeEventListener( 'mouseout', onDocumentMouseOut, false );
-
-}
-
-function onDocumentTouchStart( event ) {
-
-    if ( event.touches.length == 1 ) {
-
-        event.preventDefault();
-
-        mouseXOnMouseDown = event.touches[ 0 ].pageX - windowHalfX;
-        targetRotationOnMouseDown = targetRotation;
-
-    }
-
-}
-
-function onDocumentTouchMove( event ) {
-
-    if ( event.touches.length == 1 ) {
-
-        event.preventDefault();
-
-        mouseX = event.touches[ 0 ].pageX - windowHalfX;
-        targetRotation = targetRotationOnMouseDown + ( mouseX - mouseXOnMouseDown ) * 0.05;
-
-    }
-
-}
-
-//
-
 function animate() {
-
+    var dt = clock.getDelta();
     requestAnimationFrame( animate );
+    controls.update();
+    var closeEnough = 1;
 
+    if (prismSet) {
+        prismSet.forEach(function (prism) {
+            var dx = new THREE.Vector3();
+            dx.subVectors(waypoints[prism.waypointId], prism.position);
+            if (dx.length() > closeEnough) {
+                dx.normalize();
+                dx.multiplyScalar(dt*30.0);
+                prism.position.add(dx);
+            }
+            else {
+                console.log("CHANGING");
+                prism.waypointId = (prism.waypointId+1) % (waypoints.length);
+            }
+        })
+
+    }
     render();
     stats.update();
 
@@ -195,7 +188,6 @@ function animate() {
 
 function render() {
 
-    group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
     renderer.render( scene, camera );
 
 }
