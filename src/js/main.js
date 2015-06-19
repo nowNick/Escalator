@@ -21,7 +21,8 @@ var yellowCube;
 var waypoints;
 var waypointId;
 var clock = new THREE.Clock();
-
+var leftPivot;
+var rightPivot;
 
 var PrismCubeFactory = {
     getPrism : function (a) {
@@ -57,6 +58,24 @@ var PrismCubeFactory = {
     }
 };
 
+function StairsTape(length, height, prismAproxSize, parent) {
+    var prismSize = prismAproxSize - (length % prismAproxSize); // to cover exactly
+    var n = (length / prismSize)*3-3;
+    var prismSet = [];
+    for(var i=0; i<n; i++) {
+        var myPrism = new THREE.Mesh(
+            PrismCubeFactory.getPrism(prismSize),
+            new THREE.MeshLambertMaterial( { color: 0x00FF00 } )
+        );
+        myPrism.position.set(parent.position.x +(i*prismSize)-10,41,10);
+        myPrism.waypointId = 0;
+        prismSet.push(myPrism);
+        parent.add( myPrism );
+    }
+    return prismSet;
+}
+
+
 init();
 animate();
 
@@ -77,18 +96,7 @@ function init() {
     camera.add( light );
 
 
-    var prismSize = 10;
-    prismSet = [];
-    for(var i=0; i<14; i++) {
-        var myPrism = new THREE.Mesh(
-            PrismCubeFactory.getPrism(prismSize),
-            new THREE.MeshLambertMaterial( { color: 0x00FF00 } )
-        );
-        myPrism.position.set(-70+(i*prismSize),41,10);
-        myPrism.waypointId = 0;
-        prismSet.push(myPrism);
-        scene.add( myPrism );
-    }
+
 
 
     waypoints = [];
@@ -99,19 +107,32 @@ function init() {
 
     var depth = 10;
     var lowH = 40;
-    var highH = 80;
+    var lowerH = 20;
+    var highH = 60;
+    var higherH = 80;
 
-    var bottom = 0;
+
 
     waypoints.push(new THREE.Vector3(leftCorner, lowH, depth));
     waypoints.push(new THREE.Vector3(stepStart, lowH, depth));
-    waypoints.push(new THREE.Vector3(stepEnd, highH, depth));
+    waypoints.push(new THREE.Vector3(stepEnd, higherH, depth));
+
+    waypoints.push(new THREE.Vector3(rightCorner, higherH, depth));
+    rightPivot = new THREE.Object3D();
+    rightPivot.position.set(rightCorner, (higherH-highH/2)+highH, depth);
+    rightPivot.waypointId = 3;
+
     waypoints.push(new THREE.Vector3(rightCorner, highH, depth));
-    waypoints.push(new THREE.Vector3(rightCorner, bottom, depth));
-    waypoints.push(new THREE.Vector3(leftCorner, bottom, depth));
 
+    waypoints.push(new THREE.Vector3(stepEnd, highH, depth));
+    waypoints.push(new THREE.Vector3(stepStart, lowerH, depth));
+    waypoints.push(new THREE.Vector3(leftCorner, lowerH, depth));
+    leftPivot = new THREE.Object3D();
+    leftPivot.position.set(leftCorner, (lowH-lowerH/2)+lowerH, depth);
+    leftPivot.waypointId = 7;
 
-
+    var prismSize = 10;
+    prismSet = StairsTape(rightCorner - leftCorner, highH - lowH, prismSize, scene);
 
 
     waypoints.forEach( function(waypoint) {
@@ -169,13 +190,27 @@ function animate() {
         prismSet.forEach(function (prism) {
             var dx = new THREE.Vector3();
             dx.subVectors(waypoints[prism.waypointId], prism.position);
-            if (dx.length() > closeEnough) {
-                dx.normalize();
-                dx.multiplyScalar(dt*30.0);
-                prism.position.add(dx);
+            var move = dx.length <= closeEnough;
+
+            if(prism.waypointId === rightPivot.waypointId) {
+                rightPivot.add(prism);
+            }
+            else if (prism.waypointId === leftPivot.waypointId) {
+                leftPivot.add(prism);
             }
             else {
-                console.log("CHANGING");
+                rightPivot.remove(prism);
+                leftPivot.remove(prism);
+                if(move) {
+                    dx.normalize();
+                    dx.multiplyScalar(dt*30.0);
+                    prism.position.add(dx);
+                }
+            }
+
+            rightPivot.rotation.z += 0.01 * dt;
+            leftPivot.rotation.z += 0.01 * dt;
+            if(!move) {
                 prism.waypointId = (prism.waypointId+1) % (waypoints.length);
             }
         })
