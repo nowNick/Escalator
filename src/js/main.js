@@ -116,9 +116,9 @@ function init() {
     renderer.setSize( window.innerWidth, window.innerHeight );
     container.appendChild( renderer.domElement );
 
-    controls = new THREE.TrackballControls( camera, renderer.domElement );
-    controls.minDistance = 10;
-    controls.maxDistance = 500;
+    controls = new THREE.OrbitControls( camera );
+    controls.damping = 0.2;
+    controls.addEventListener( 'change', render );
 
     stats = new Stats();
     stats.domElement.style.position = 'absolute';
@@ -155,14 +155,14 @@ function init() {
     prismSet = StairsTape(rightCorner - leftCorner, highH - lowH, prismSize, scene);
 
 
-    waypoints.forEach( function(waypoint) {
-        var cube = new THREE.Mesh(
-            new THREE.CubeGeometry(5,5,5),
-            new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } )
-        );
-        cube.position.set(waypoint.x, waypoint.y, waypoint.z);
-        scene.add( cube );
-    });
+    //waypoints.forEach( function(waypoint) {
+    //    var cube = new THREE.Mesh(
+    //        new THREE.CubeGeometry(5,5,5),
+    //        new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } )
+    //    );
+    //    cube.position.set(waypoint.x, waypoint.y, waypoint.z);
+    //    scene.add( cube );
+    //});
 
     window.addEventListener( 'resize', onWindowResize, false );
     document.addEventListener("keydown", onDocumentKeyDown, false);
