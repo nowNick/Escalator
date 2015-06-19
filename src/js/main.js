@@ -151,6 +151,64 @@ function init() {
     waypoints.push(new THREE.Vector3(stepStart, lowerH, depth));
     waypoints.push(new THREE.Vector3(leftCorner, lowerH, depth));
 
+
+     group = new THREE.Group();
+    group.position.x = 0;
+    group.position.y = 0;
+    group.position.z = 0;
+
+    var trackShape = new THREE.Shape();
+
+    var widthOfHandrails = 10;
+    var sizeOfPrism = 10;
+    trackShape.moveTo( waypoints[0].x, waypoints[0].y + widthOfHandrails + sizeOfPrism);
+
+        // if(i == 3) {
+            // trackShape.absarc( waypoints[i].x, waypoints[i].y, 
+            //     10, 0, Math.PI/2, false );
+        // }
+
+    trackShape.lineTo( waypoints[1].x , waypoints[1].y + widthOfHandrails + sizeOfPrism);
+    trackShape.lineTo( waypoints[2].x , waypoints[2].y + widthOfHandrails + sizeOfPrism);
+
+    trackShape.lineTo( waypoints[3].x , waypoints[3].y + widthOfHandrails + sizeOfPrism);
+    var arcR = ((waypoints[3].y + widthOfHandrails + sizeOfPrism) - (waypoints[4].y - widthOfHandrails)) / 2;
+
+    trackShape.absarc( waypoints[3].x, waypoints[4].y - widthOfHandrails + arcR, 
+                arcR, - Math.PI/2, Math.PI/2, false );
+    trackShape.lineTo( waypoints[4].x , waypoints[4].y - widthOfHandrails);
+    trackShape.lineTo( waypoints[5].x , waypoints[5].y - widthOfHandrails);
+    trackShape.lineTo( waypoints[6].x , waypoints[6].y - widthOfHandrails);
+    trackShape.lineTo( waypoints[7].x , waypoints[7].y - widthOfHandrails);
+    arcR = ((waypoints[0].y + widthOfHandrails + sizeOfPrism) - (waypoints[7].y - widthOfHandrails)) / 2;
+
+    trackShape.absarc( waypoints[0].x, waypoints[7].y - widthOfHandrails + arcR, 
+                arcR, Math.PI + Math.PI/2, Math.PI/2, true );
+
+
+
+
+
+
+    // trackShape.absarc( 60, 160, 20, Math.PI, 0, true );
+    // trackShape.lineTo( 80, 40 );
+    // trackShape.absarc( 60, 40, 20, 2 * Math.PI, Math.PI, true );
+
+    
+    var extrudeSettings = { amount: 8, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
+
+    geometry = new THREE.ExtrudeGeometry( trackShape, extrudeSettings );
+
+
+    var mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x000000 } ) );
+    mesh.position.set( 0, 0, 0 );
+    // mesh.rotation.set( 10, 10, 10 );
+    // mesh.scale.set( 10, 10, 10 );
+    group.add( mesh );
+
+    scene.add( group );
+
+
     var prismSize = 10;
     prismSet = StairsTape(rightCorner - leftCorner, highH - lowH, prismSize, scene);
 
