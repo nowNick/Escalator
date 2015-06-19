@@ -26,9 +26,9 @@ var rightPivot;
 
 var PrismCubeFactory = {
     getPrism : function (a) {
-        var A = new THREE.Vector2( a, a );
-        var B = new THREE.Vector2( a, 0 );
-        var C = new THREE.Vector2( 0, a );
+        var A = new THREE.Vector2( 0, 0 );
+        var B = new THREE.Vector2( 0, a );
+        var C = new THREE.Vector2( a, a );
 
         PrismGeometry = function ( vertices, height ) {
 
@@ -190,26 +190,26 @@ function animate() {
         prismSet.forEach(function (prism) {
             var dx = new THREE.Vector3();
             dx.subVectors(waypoints[prism.waypointId], prism.position);
-            var move = dx.length <= closeEnough;
+            var move = dx.length() >= closeEnough;
 
-            if(prism.waypointId === rightPivot.waypointId) {
-                rightPivot.add(prism);
-            }
-            else if (prism.waypointId === leftPivot.waypointId) {
-                leftPivot.add(prism);
-            }
-            else {
-                rightPivot.remove(prism);
-                leftPivot.remove(prism);
+            //if(prism.waypointId === rightPivot.waypointId) {
+            //    rightPivot.add(prism);
+            //}
+            //else if (prism.waypointId === leftPivot.waypointId) {
+            //    leftPivot.add(prism);
+            //}
+            //else {
+            //    rightPivot.remove(prism);
+            //    leftPivot.remove(prism);
                 if(move) {
                     dx.normalize();
                     dx.multiplyScalar(dt*30.0);
                     prism.position.add(dx);
                 }
-            }
+            //}
 
-            rightPivot.rotation.z += 0.01 * dt;
-            leftPivot.rotation.z += 0.01 * dt;
+            //rightPivot.rotation.z += 0.01 * dt;
+            //leftPivot.rotation.z += 0.01 * dt;
             if(!move) {
                 prism.waypointId = (prism.waypointId+1) % (waypoints.length);
             }
