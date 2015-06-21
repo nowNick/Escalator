@@ -12,6 +12,11 @@ var prismSet;
 var waypoints;
 var clock = new THREE.Clock();
 var run = false;
+var params = {
+    speed: 30
+};
+
+
 
 var PrismCubeFactory = {
     getPrism : function (a) {
@@ -41,7 +46,7 @@ var PrismCubeFactory = {
         };
         PrismGeometry.prototype = Object.create( THREE.ExtrudeGeometry.prototype );
 
-        var height = 12;
+        var height = 18;
 
         return new PrismGeometry( [ A, B, C ], height );
     }
@@ -104,11 +109,21 @@ function init() {
     scene = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 1000 );
-    camera.position.set( 0, 50, 50 );
+    camera.position.set( -200, 300, 200 );
     scene.add( camera );
 
     var light = new THREE.PointLight( 0xffffff, 0.8 );
     camera.add( light );
+
+    // lights
+
+    light = new THREE.DirectionalLight( 0xffffff, 1 / 2 );
+    light.position.set( 0, 300, 500 );
+    scene.add( light );
+
+    light = new THREE.DirectionalLight( 0xffffff, 1 / 2 );
+    light.position.set( 0, -300, 500 );
+    scene.add( light );
 
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setClearColor( 0xf0f0f0 );
@@ -195,22 +210,24 @@ function init() {
     // trackShape.absarc( 60, 40, 20, 2 * Math.PI, Math.PI, true );
 
     
-    var extrudeSettings = { amount: 8, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
+    var extrudeSettings = { amount: 2, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
 
     geometry = new THREE.ExtrudeGeometry( trackShape, extrudeSettings );
 
 
     var mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x000000 } ) );
-    mesh.position.set( 0, 0, 0 );
+    mesh.position.set( 0, 0, 8 );
     // mesh.rotation.set( 10, 10, 10 );
     // mesh.scale.set( 10, 10, 10 );
     group.add( mesh );
 
+    var mesh2 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x000000 } ) );
+    mesh2.position.set( 0, 0, 28 );
+    group.add( mesh2 );
     scene.add( group );
 
-
     var prismSize = 10;
-    prismSet = StairsTape(rightCorner - leftCorner, highH - lowH, prismSize, scene);
+    prismSet = StairsTape(rightCorner - leftCorner,highH - lowH, prismSize, scene);
 
 
     //waypoints.forEach( function(waypoint) {
@@ -222,9 +239,35 @@ function init() {
     //    scene.add( cube );
     //});
 
+
+    // floor
+
+    geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
+    geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
+
+    var texture = THREE.ImageUtils.loadTexture( 'images/textures/grass.jpg' );
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(32 , 32);
+    material = new THREE.MeshLambertMaterial({map:texture});
+
+    ground = new THREE.Mesh( geometry, material );
+    ground.position.set(0,45,0);
+    scene.add( ground );
+
+
     window.addEventListener( 'resize', onWindowResize, false );
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
+
+    var gui = new dat.GUI({
+        height : 5 * 32 - 1
+    });
+
+    gui.add(params, 'speed', 0, 200);
+    gui.add(mesh, 'visible').name('back');
+    gui.add(mesh2, 'visible').name('front');
+    gui.add(ground, 'visible').name('ground');
 
 }
 
@@ -261,7 +304,7 @@ function animate() {
 
             if(move) {
                 dx.normalize();
-                dx.multiplyScalar(dt*30.0);
+                dx.multiplyScalar(dt*params.speed);
                 prism.position.add(dx);
             }
             else {
