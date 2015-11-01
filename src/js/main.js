@@ -15,7 +15,54 @@ var run = false;
 var params = {
     speed: 30
 };
+var step = 0.01;
 
+var stairsConfig = {
+    prismSize : 10,
+    leftCorner : -50,
+    stepStart : -25,
+    rightCorner : 50,
+    stepEnd : 25,
+
+    lowH : 40,
+    lowerH : 20,
+    highH : 60,
+    higherH : 80
+};
+
+var innerPath;
+var outerPath;
+
+var PathFactory = {
+    generatePath: function(additionalOffset) {
+
+        StairsPath = function (additionalOffset, config) {
+            var path = new THREE.Shape();
+
+            path.moveTo(config.leftCorner, config.lowH + additionalOffset);
+
+            path.lineTo(config.stepStart, config.lowH + additionalOffset);
+            path.lineTo(config.stepEnd, config.higherH + additionalOffset);
+
+            path.lineTo(config.rightCorner, config.higherH + additionalOffset);
+            var slideArcR = (config.higherH - config.highH) / 2;
+
+            path.absarc(config.rightCorner, slideArcR + config.highH,
+                slideArcR + additionalOffset, Math.PI / 2, -Math.PI / 2, true);
+            path.moveTo(config.rightCorner, config.highH - additionalOffset);
+            path.lineTo(config.stepEnd, config.highH - additionalOffset);
+            path.lineTo(config.stepStart, config.lowerH - additionalOffset);
+            path.lineTo(config.leftCorner, config.lowerH - additionalOffset);
+            slideArcR = (config.lowH - config.lowerH) / 2;
+
+            path.absarc(config.leftCorner, config.lowerH + slideArcR,
+                slideArcR + additionalOffset, Math.PI + Math.PI / 2, Math.PI / 2, true);
+            return path;
+        };
+
+        return new StairsPath(additionalOffset, stairsConfig);
+    }
+};
 
 
 var PrismCubeFactory = {
@@ -54,7 +101,7 @@ var PrismCubeFactory = {
 
 function StairsTape(length, height, prismAproxSize, parent) {
     var prismSize = prismAproxSize - (length % prismAproxSize); // to cover exactly
-    var n = (length / prismSize)*3-3;
+    var n = (length / prismSize)*3+8;
     var prismSet = [];
 
     for(var i=0; i<n; i++) {
@@ -89,9 +136,9 @@ function StairsTape(length, height, prismAproxSize, parent) {
 
         texture.needsUpdate = true;
 
-        myPrism.position.set(parent.position.x +(i*prismSize)-10,41,10);
+        myPrism.position.set(parent.position.x +(i*prismSize),41,10);
         myPrism.waypointId = 0;
-        myPrism.pivot = undefined;
+
         prismSet.push(myPrism);
         parent.add( myPrism );
     }
@@ -112,23 +159,26 @@ function init() {
     camera.position.set( -200, 300, 200 );
     scene.add( camera );
 
-    var light = new THREE.PointLight( 0xffffff, 0.8 );
-    camera.add( light );
+    var light1 = new THREE.PointLight( 0xffffff, 0.8 );
+    camera.add( light1 );
 
     // lights
+    var light2 = new THREE.SpotLight( 0xffffff, 0.3);
+    light2.position.set( 100, 1500, 200 );
 
-    light = new THREE.DirectionalLight( 0xffffff, 1 / 2 );
-    light.position.set( 0, 300, 500 );
-    scene.add( light );
+    scene.add( light2 );
 
-    light = new THREE.DirectionalLight( 0xffffff, 1 / 2 );
-    light.position.set( 0, -300, 500 );
-    scene.add( light );
+    var light3 = new THREE.SpotLight( 0xffffff, 0.3);
+    light3.position.set( -100, 1500, -200 );
+
+    scene.add( light3 );
 
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setClearColor( 0xf0f0f0 );
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize( window.innerWidth, window.innerHeight );
+
+
     container.appendChild( renderer.domElement );
 
     controls = new THREE.OrbitControls( camera );
@@ -140,31 +190,11 @@ function init() {
     stats.domElement.style.top = '0px';
     container.appendChild( stats.domElement );
 
-
-    waypoints = [];
-    var leftCorner = -50;
-    var stepStart = leftCorner + (Math.abs(leftCorner*0.5));
-    var rightCorner = -leftCorner;
-    var stepEnd = rightCorner - rightCorner*0.5;
-
-    var depth = 10;
-    var lowH = 40;
-    var lowerH = 20;
-    var highH = 60;
-    var higherH = 80;
+    var prismSize = 10;
 
 
-    waypoints.push(new THREE.Vector3(leftCorner, lowH, depth));
-    waypoints.push(new THREE.Vector3(stepStart, lowH, depth));
-    waypoints.push(new THREE.Vector3(stepEnd, higherH, depth));
-
-    waypoints.push(new THREE.Vector3(rightCorner, higherH, depth));
-
-    waypoints.push(new THREE.Vector3(rightCorner, highH, depth));
-
-    waypoints.push(new THREE.Vector3(stepEnd, highH, depth));
-    waypoints.push(new THREE.Vector3(stepStart, lowerH, depth));
-    waypoints.push(new THREE.Vector3(leftCorner, lowerH, depth));
+    innerPath = PathFactory.generatePath(0);
+    outerPath = PathFactory.generatePath(prismSize);
 
 
      group = new THREE.Group();
@@ -172,72 +202,42 @@ function init() {
     group.position.y = 0;
     group.position.z = 0;
 
-    var trackShape = new THREE.Shape();
-
     var widthOfHandrails = 10;
+
     var sizeOfPrism = 10;
-    trackShape.moveTo( waypoints[0].x, waypoints[0].y + widthOfHandrails + sizeOfPrism);
-
-        // if(i == 3) {
-            // trackShape.absarc( waypoints[i].x, waypoints[i].y, 
-            //     10, 0, Math.PI/2, false );
-        // }
-
-    trackShape.lineTo( waypoints[1].x , waypoints[1].y + widthOfHandrails + sizeOfPrism);
-    trackShape.lineTo( waypoints[2].x , waypoints[2].y + widthOfHandrails + sizeOfPrism);
-
-    trackShape.lineTo( waypoints[3].x , waypoints[3].y + widthOfHandrails + sizeOfPrism);
-    var arcR = ((waypoints[3].y + widthOfHandrails + sizeOfPrism) - (waypoints[4].y - widthOfHandrails)) / 2;
-
-    trackShape.absarc( waypoints[3].x, waypoints[4].y - widthOfHandrails + arcR, 
-                arcR, - Math.PI/2, Math.PI/2, false );
-    trackShape.lineTo( waypoints[4].x , waypoints[4].y - widthOfHandrails);
-    trackShape.lineTo( waypoints[5].x , waypoints[5].y - widthOfHandrails);
-    trackShape.lineTo( waypoints[6].x , waypoints[6].y - widthOfHandrails);
-    trackShape.lineTo( waypoints[7].x , waypoints[7].y - widthOfHandrails);
-    arcR = ((waypoints[0].y + widthOfHandrails + sizeOfPrism) - (waypoints[7].y - widthOfHandrails)) / 2;
-
-    trackShape.absarc( waypoints[0].x, waypoints[7].y - widthOfHandrails + arcR, 
-                arcR, Math.PI + Math.PI/2, Math.PI/2, true );
-
-
-
-
-
-
-    // trackShape.absarc( 60, 160, 20, Math.PI, 0, true );
-    // trackShape.lineTo( 80, 40 );
-    // trackShape.absarc( 60, 40, 20, 2 * Math.PI, Math.PI, true );
-
+    var trackShape = PathFactory.generatePath(widthOfHandrails + sizeOfPrism);
     
     var extrudeSettings = { amount: 2, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
 
     geometry = new THREE.ExtrudeGeometry( trackShape, extrudeSettings );
 
 
-    var mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x000000 } ) );
-    mesh.position.set( 0, 0, 8 );
-    // mesh.rotation.set( 10, 10, 10 );
-    // mesh.scale.set( 10, 10, 10 );
-    group.add( mesh );
+    var backHandrail = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x333333 } ) );
+    backHandrail.position.set( 0, 0, 8 );
 
-    var mesh2 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x000000 } ) );
-    mesh2.position.set( 0, 0, 28 );
-    group.add( mesh2 );
+
+    group.add( backHandrail );
+
+    var frontHandrail = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial( { color: 0x333333 } ) );
+    frontHandrail.position.set( 0, 0, 28 );
+    group.add( frontHandrail );
     scene.add( group );
 
-    var prismSize = 10;
-    prismSet = StairsTape(rightCorner - leftCorner,highH - lowH, prismSize, scene);
+    var innerSlide = new THREE.PointCloud( innerPath.createSpacedPointsGeometry( 200 ),
+        new THREE.PointCloudMaterial( { color: 0xFF0000, size: 12 } ));
+    innerSlide.position.set( 0, 0, 18 );
+    group.add(innerSlide);
+
+    var outerSlide = new THREE.PointCloud( outerPath.createSpacedPointsGeometry( 200 ),
+        new THREE.PointCloudMaterial( { color: 0x0000FF, size: 12 } ));
+    outerSlide.position.set( 0, 0, 18 );
+    group.add(outerSlide);
 
 
-    //waypoints.forEach( function(waypoint) {
-    //    var cube = new THREE.Mesh(
-    //        new THREE.CubeGeometry(5,5,5),
-    //        new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } )
-    //    );
-    //    cube.position.set(waypoint.x, waypoint.y, waypoint.z);
-    //    scene.add( cube );
-    //});
+
+
+    prismSet = StairsTape(stairsConfig.rightCorner - stairsConfig.leftCorner,
+        stairsConfig.highH - stairsConfig.lowH, prismSize, scene);
 
 
     // floor
@@ -245,14 +245,15 @@ function init() {
     geometry = new THREE.PlaneGeometry( 2000, 2000, 100, 100 );
     geometry.applyMatrix( new THREE.Matrix4().makeRotationX( - Math.PI / 2 ) );
 
-    var texture = THREE.ImageUtils.loadTexture( 'images/textures/grass.jpg' );
+    var texture = THREE.ImageUtils.loadTexture( 'images/textures/floor.jpg' );
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(32 , 32);
     material = new THREE.MeshLambertMaterial({map:texture});
 
     ground = new THREE.Mesh( geometry, material );
-    ground.position.set(0,45,0);
+    ground.position.set(0,49,0);
+
     scene.add( ground );
 
 
@@ -264,9 +265,8 @@ function init() {
         height : 5 * 32 - 1
     });
 
-    gui.add(params, 'speed', 0, 200);
-    gui.add(mesh, 'visible').name('back');
-    gui.add(mesh2, 'visible').name('front');
+    gui.add(backHandrail, 'visible').name('back');
+    gui.add(frontHandrail, 'visible').name('front');
     gui.add(ground, 'visible').name('ground');
 
 }
@@ -298,17 +298,51 @@ function animate() {
 
     if (prismSet && run) {
         prismSet.forEach(function (prism) {
-            var dx = new THREE.Vector3();
-            dx.subVectors(waypoints[prism.waypointId], prism.position);
-            var move = dx.length() >= closeEnough;
 
-            if(move) {
-                dx.normalize();
-                dx.multiplyScalar(dt*params.speed);
-                prism.position.add(dx);
+            var innerPathVector = innerPath.getPoint(prism.waypointId);
+            var outerPathVector = outerPath.getPoint(prism.waypointId);
+
+
+
+            innerPathVector = new THREE.Vector3(innerPathVector.x, innerPathVector.y, prism.position.z);
+            outerPathVector = new THREE.Vector3(outerPathVector.x, outerPathVector.y, prism.position.z);
+
+            var innerSlide = new THREE.Vector3();
+            innerSlide.subVectors(innerPathVector, prism.position);
+
+            if(prism.position.x > 50 && prism.position.y > 70
+                && prism.waypointId > 0.39) {
+                prism.rotation.z = -Math.asin(((prism.position.x - 50) / 10));
+            }
+            else if(prism.position.x > 50 && prism.position.y <= 70
+                && prism.waypointId > 0.44) {
+                prism.rotation.z = (-Math.PI + Math.asin(((prism.position.x - 50) / 10)));
+            }
+            else if(prism.position.x <= 50 && prism.position.x > -50
+                    && prism.waypointId > 0.49) {
+                prism.rotation.z = -Math.PI;
+            }
+            else if(prism.position.x <= -50 && prism.position.y < 30) {
+                prism.rotation.z = Math.PI + Math.asin(((prism.position.x + 50) / 10));
+            }
+            else if(prism.position.x <= -50 && prism.position.y >= 30) {
+                prism.rotation.z = (2*Math.PI - Math.asin(((prism.position.x + 50) / 10)));
             }
             else {
-                prism.waypointId = (prism.waypointId+1) % (waypoints.length);
+                prism.rotation.z = 0;
+            }
+
+            var move = innerSlide.length() >= closeEnough;
+
+            if(move) {
+                innerSlide.normalize();
+                prism.position.add(innerSlide);
+            }
+            else {
+                prism.waypointId = (prism.waypointId+step);
+                if(prism.waypointId >= 1) {
+                    prism.waypointId = 0;
+                }
             }
         })
 
